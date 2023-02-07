@@ -62,8 +62,11 @@ def check_ntp():
         for cur_line in payload.splitlines():
             cur_data = re.split(' +', cur_line)
             if cur_line.startswith("*") or cur_line.startswith("+"):
-                if (int(cur_data[4]) <= (int(cur_data[5]) * 2)) and (int(cur_data[6]) > 0):
-                    working_server.append(cur_data)
+                try:
+                    if (int(cur_data[4]) <= (int(cur_data[5]) * 2)) and (int(cur_data[6]) > 0):
+                        working_server.append(cur_data)
+                except Exception:
+                    logger.exception()
 
     if not working_server:
         logger.warning("No working NTP servers found.")
@@ -235,6 +238,7 @@ def signal_handler(signum, frame):
 if __name__ == '__main__':
     # Setup the status LED.
     gpio.setmode(gpio.BCM)
+    gpio.setwarnings(False)
     gpio.setup(led1_green, gpio.OUT)
     gpio.setup(led1_red, gpio.OUT)
     gpio.setup(led2_green, gpio.OUT)
@@ -247,6 +251,7 @@ if __name__ == '__main__':
     gpio.output(led2_red, gpio.LOW)
     gpio.output(led4_green, gpio.LOW)
     gpio.output(led4_red, gpio.LOW)
+    gpio.setwarnings(True)
 
     # Handle signals.
     signal.signal(signal.SIGINT, signal_handler)
