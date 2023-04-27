@@ -254,12 +254,25 @@ if __name__ == '__main__':
     if len(sys.argv) == 2:
         interval = int(sys.argv[1])
 
+    # Configure the logger
+    log_dir = '/home/mss/log'
+    log_filename = os.path.join(log_dir, 'mss_status_control.log')
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    logger = logging.getLogger('mss_status_control')
+    logger.setLevel('INFO')
+    logger.addHandler(get_logger_handler(log_filename))
+
+    logger.info('Starting status control.')
+
     # Load the mss_record configuration to get the pcb version.
     config = load_configuration('/home/mss/config/mss_record.ini')
     if config['pcb']['pcb_version'] == 1:
         # Don't run the status control.
-        subprocess.call(('sudo', 'systemctl', 'stop', 'mss_status_control.service'))
+        logger.info('Disabling the status control service.')
         subprocess.call(('sudo', 'systemctl', 'disable', 'mss_status_control.service'))
+        time.sleep(1)
+        subprocess.call(('sudo', 'systemctl', 'stop', 'mss_status_control.service'))
         sys.exit(0)
 
     # Setup the status LED.
@@ -288,16 +301,7 @@ if __name__ == '__main__':
     # Setup the threading events.
     stop_event = threading.Event()
 
-    # Configure the logger
-    log_dir = '/home/mss/log'
-    log_filename = os.path.join(log_dir, 'mss_status_control.log')
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
-    logger = logging.getLogger('mss_status_control')
-    logger.setLevel('INFO')
-    logger.addHandler(get_logger_handler(log_filename))
-
-    logger.info('Starting status control.')
+    
     status_thread = threading.Thread(name = 'process_timer',
                                      target = task_timer,
                                      args = (check_status, stop_event),
