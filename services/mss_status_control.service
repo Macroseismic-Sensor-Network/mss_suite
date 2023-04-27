@@ -1,0 +1,15 @@
+[Unit]
+Description=MSS status control service.
+After=rsyslog.service udev.service
+
+[Service]
+ExecStart=/usr/bin/mss_status_control 20
+Type=simple
+User=mss
+WorkingDirectory=/home/mss
+Environment="LD_PRELOAD=/usr/lib/arm-linux-gnueabihf/libatomic.so.1.2.0"
+Restart=always
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target

@@ -1,5 +1,6 @@
 #! /usr/bin/env python3
 
+import configparser
 import glob
 import logging
 import logging.handlers
@@ -235,7 +236,32 @@ def signal_handler(signum, frame):
         logger.info("Got unintended signal: %d.")
 
 
+def load_configuration(filename):
+    ''' Load the configuration from a file.
+    '''
+    parser = configparser.ConfigParser()
+    parser.read(filename)
+
+    config = {}
+    config['pcb'] = {}
+    config['pcb']['pcb_version'] = int(parser.get('pcb', 'pcb_version').strip())
+
+    return config
+
 if __name__ == '__main__':
+    # Process command line arguments.
+    interval = 10
+    if len(sys.argv) == 2:
+        interval = int(sys.argv[1])
+
+    # Load the mss_record configuration to get the pcb version.
+    config = load_configuration('/home/mss/config/mss_record.ini')
+    if config['pcb']['pcb_version'] == 1:
+        # Don't run the status control.
+        subprocess.call(('sudo', 'systemctl', 'stop', 'mss_status_control.service'))
+        subprocess.call(('sudo', 'systemctl', 'disable', 'mss_status_control.service'))
+        sys.exit(0)
+
     # Setup the status LED.
     gpio.setmode(gpio.BCM)
     gpio.setwarnings(False)
@@ -274,6 +300,7 @@ if __name__ == '__main__':
     logger.info('Starting status control.')
     status_thread = threading.Thread(name = 'process_timer',
                                      target = task_timer,
-                                     args = (check_status, stop_event))
+                                     args = (check_status, stop_event),
+                                     kwargs = {'interval': interval})
     status_thread.start()
     status_thread.join()
